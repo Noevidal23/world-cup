@@ -1,0 +1,39 @@
+{
+  "name": "world-cup",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --host",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "test": "tsx --test tests/**/*.test.ts",
+    "typecheck": "nuxt typecheck",
+    "fetch:worldcup": "tsx scripts/fetch-worldcup-data.ts",
+    "import:worldcup": "tsx scripts/import-worldcup.ts",
+    "seed:dev": "tsx scripts/seed-dev.ts",
+    "backup:mongo": "sh scripts/mongo-backup.sh",
+    "restore:mongo": "sh scripts/mongo-restore.sh"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.108",
+    "@iconify-json/simple-icons": "^1.2.83",
+    "@nuxt/ui": "^4.7.1",
+    "bcrypt": "^6.0.0",
+    "mongoose": "^9.6.3",
+    "nuxt": "^4.4.6",
+    "tailwindcss": "^4.3.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.15.2",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.0",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.0"
+  },
+  "packageManager": "pnpm@11.1.3"
+}

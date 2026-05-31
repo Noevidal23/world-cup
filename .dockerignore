@@ -1,0 +1,12 @@
+.git
+.github
+.nuxt
+.output
+node_modules
+coverage
+.env
+.env.*
+!.env.example
+backups
+*.log
+.DS_Store
