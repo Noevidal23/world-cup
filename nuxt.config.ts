@@ -11,13 +11,6 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  icon: {
-    serverBundle: {
-      collections: ['lucide'],
-      externalizeIconsJson: true
-    }
-  },
-
   runtimeConfig: {
     mongodbUri: process.env.MONGODB_URI,
     sessionSecret: process.env.SESSION_SECRET,
@@ -34,6 +27,13 @@ export default defineNuxtConfig({
         commaDangle: 'never',
         braceStyle: '1tbs'
       }
+    }
+  },
+
+  icon: {
+    serverBundle: {
+      collections: ['lucide'],
+      externalizeIconsJson: true
     }
   }
 })
