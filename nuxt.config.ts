@@ -6,10 +6,17 @@ export default defineNuxtConfig({
   ],
 
   devtools: {
-    enabled: true
+    enabled: process.env.NODE_ENV !== 'production'
   },
 
   css: ['~/assets/css/main.css'],
+
+  icon: {
+    serverBundle: {
+      collections: ['lucide'],
+      externalizeIconsJson: true
+    }
+  },
 
   runtimeConfig: {
     mongodbUri: process.env.MONGODB_URI,

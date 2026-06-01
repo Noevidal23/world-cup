@@ -9,6 +9,8 @@ RUN pnpm install --frozen-lockfile
 FROM node:24-alpine AS builder
 WORKDIR /app
 RUN corepack enable
+ARG NODE_OPTIONS=--max-old-space-size=2048
+ENV NODE_OPTIONS=${NODE_OPTIONS}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

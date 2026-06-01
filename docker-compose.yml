@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NODE_OPTIONS: --max-old-space-size=${BUILD_NODE_MEMORY_MB:-2048}
     image: quiniela-worldcup:latest
     restart: unless-stopped
     env_file:

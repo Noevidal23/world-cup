@@ -21,6 +21,7 @@ Variables obligatorias:
 
 - `MONGODB_URI`
 - `SESSION_SECRET`
+- `BUILD_NODE_MEMORY_MB`
 - `MONGO_DATABASE`
 - `MONGO_ROOT_USERNAME`
 - `MONGO_ROOT_PASSWORD`
@@ -34,6 +35,8 @@ openssl rand -hex 32
 ```
 
 En producción `NODE_ENV=production` activa cookies `secure`, por lo que debes servir la app sobre HTTPS detrás de Nginx.
+
+`BUILD_NODE_MEMORY_MB` controla la memoria disponible para el build de Nuxt dentro de Docker. El valor recomendado es `4096`; si tu VPS o Docker Desktop tiene menos memoria disponible, sube el límite de memoria del entorno Docker antes de ejecutar `docker compose build`.
 
 ## Build y arranque
 
