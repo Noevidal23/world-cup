@@ -2,18 +2,16 @@
 
 FROM node:24-alpine AS deps
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 FROM node:24-alpine AS builder
 WORKDIR /app
-RUN corepack enable
 ARG NODE_OPTIONS=--max-old-space-size=2048
 ENV NODE_OPTIONS=${NODE_OPTIONS}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+RUN npm run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app

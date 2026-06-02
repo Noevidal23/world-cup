@@ -66,7 +66,7 @@ curl http://127.0.0.1:3000/api/health
 Antes del despliegue final, crea el administrador inicial desde el entorno de mantenimiento/desarrollo con acceso a la misma base:
 
 ```bash
-pnpm seed:dev
+npm run seed:dev
 ```
 
 En EasyPanel o despliegues donde no ejecutes scripts dentro del servidor, puedes activar temporalmente:
@@ -83,8 +83,8 @@ Después del primer arranque, cambia `SEED_ADMIN_ENABLED=false` y redeploya.
 Después carga el calendario:
 
 ```bash
-pnpm fetch:worldcup
-pnpm import:worldcup data/worldcup-2026.json
+npm run fetch:worldcup
+npm run import:worldcup data/worldcup-2026.json
 ```
 
 En producción, una vez que ya tengas admin, también puedes entrar a `/admin/operations` y usar el botón **Cargar datos del Mundial** para importar `data/worldcup-2026.json`.
@@ -137,7 +137,7 @@ sudo systemctl reload nginx
 Crear backup:
 
 ```bash
-pnpm backup:mongo
+npm run backup:mongo
 ```
 
 O directamente:
@@ -153,7 +153,7 @@ El archivo se guarda en `./backups/worldcup-YYYYMMDD-HHMMSS.archive.gz`.
 Restaurar un backup borra primero la base configurada en `MONGO_DATABASE`.
 
 ```bash
-pnpm restore:mongo backups/worldcup-YYYYMMDD-HHMMSS.archive.gz
+npm run restore:mongo backups/worldcup-YYYYMMDD-HHMMSS.archive.gz
 ```
 
 El script pide escribir `RESTORE` antes de ejecutar.
@@ -163,10 +163,10 @@ El script pide escribir `RESTORE` antes de ejecutar.
 Antes de publicar:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
+npm run lint
+npm run typecheck
+npm test
+npm run build
 docker compose build
 docker compose up -d
 curl http://127.0.0.1:3000/api/health

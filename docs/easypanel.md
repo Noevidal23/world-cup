@@ -69,13 +69,13 @@ Los scripts trabajan contra `MONGODB_URI`, no contra un contenedor local de Mong
 Backup:
 
 ```bash
-pnpm backup:mongo
+npm run backup:mongo
 ```
 
 Restore:
 
 ```bash
-pnpm restore:mongo backups/worldcup-YYYYMMDD-HHMMSS.archive.gz
+npm run restore:mongo backups/worldcup-YYYYMMDD-HHMMSS.archive.gz
 ```
 
 Los scripts usan una imagen temporal `mongo:7` para ejecutar `mongodump` y `mongorestore`.

@@ -12,12 +12,12 @@ Plataforma Nuxt 4 para administrar una quiniela del Mundial FIFA 2026 con autent
 - Zod
 - bcrypt
 - Cookies httpOnly
-- pnpm
+- npm
 
 ## Setup
 
 ```bash
-pnpm install
+npm install
 cp .env.example .env
 ```
 
@@ -26,7 +26,7 @@ Configura `MONGODB_URI` y `SESSION_SECRET` antes de iniciar.
 ## Desarrollo
 
 ```bash
-pnpm dev
+npm run dev
 ```
 
 ## Seed de desarrollo
@@ -34,7 +34,7 @@ pnpm dev
 El seed crea un administrador, equipos y partidos mínimos para probar dashboards.
 
 ```bash
-pnpm seed:dev
+npm run seed:dev
 ```
 
 Credenciales por defecto:
@@ -45,13 +45,13 @@ Credenciales por defecto:
 Puedes cambiarlas con:
 
 ```bash
-SEED_ADMIN_USERNAME=admin SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' pnpm seed:dev
+SEED_ADMIN_USERNAME=admin SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npm run seed:dev
 ```
 
 ## Importar calendario
 
 ```bash
-pnpm import:worldcup calendario.json
+npm run import:worldcup calendario.json
 ```
 
 También existe preview vía endpoint admin:
@@ -63,9 +63,9 @@ POST /api/admin/import/worldcup/preview
 ## QA
 
 ```bash
-pnpm test
-pnpm typecheck
-pnpm lint
+npm test
+npm run typecheck
+npm run lint
 ```
 
 ## Operación
