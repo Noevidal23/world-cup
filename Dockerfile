@@ -3,8 +3,8 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true
 
 FROM node:24-alpine AS builder
 WORKDIR /app
