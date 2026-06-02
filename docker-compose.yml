@@ -13,10 +13,6 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
-      MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DATABASE}?authSource=${MONGO_DATABASE}
-    depends_on:
-      mongo:
-        condition: service_healthy
     ports:
       - "${APP_PORT:-3000}:3000"
     healthcheck:
@@ -30,31 +26,3 @@ services:
       options:
         max-size: 10m
         max-file: "5"
-
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
-      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
-    volumes:
-      - mongo_data:/data/db
-      - ./docker/mongo/initdb.d:/docker-entrypoint-initdb.d:ro
-      - ./backups:/backups
-    healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' mongodb://$${MONGO_INITDB_ROOT_USERNAME}:$${MONGO_INITDB_ROOT_PASSWORD}@127.0.0.1:27017/admin | grep 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "5"
-
-volumes:
-  mongo_data:

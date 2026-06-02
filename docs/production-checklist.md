@@ -5,7 +5,8 @@
 - `MONGODB_URI` apunta a una base con backups automáticos.
 - `SESSION_SECRET` tiene al menos 32 caracteres aleatorios.
 - `NUXT_PUBLIC_APP_NAME` contiene el nombre público.
-- `SEED_ADMIN_PASSWORD` no se usa en producción.
+- `SEED_ADMIN_ENABLED=false` después de crear el primer administrador.
+- `SEED_ADMIN_PASSWORD` no queda visible en capturas, logs ni documentación.
 
 ## Seguridad
 

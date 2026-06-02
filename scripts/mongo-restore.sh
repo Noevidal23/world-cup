@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+MONGO_TOOLS_IMAGE="${MONGO_TOOLS_IMAGE:-mongo:7}"
 BACKUP_FILE="${1:-}"
 
 if [ -z "$BACKUP_FILE" ]; then
@@ -20,21 +20,17 @@ if [ -f .env ]; then
   set +a
 fi
 
-: "${MONGO_DATABASE:?MONGO_DATABASE is required}"
-: "${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME is required}"
-: "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}"
+: "${MONGODB_URI:?MONGODB_URI is required}"
 
 case "$BACKUP_FILE" in
   backups/*) ;;
   *)
-    echo "Backup file must be inside ./backups so the Mongo container can read it."
+    echo "Backup file must be inside ./backups."
     exit 1
     ;;
 esac
 
-CONTAINER_BACKUP="/backups/$(basename "$BACKUP_FILE")"
-
-echo "This will drop and restore database: $MONGO_DATABASE"
+echo "This will drop and restore the database configured in MONGODB_URI."
 printf "Type RESTORE to continue: "
 read CONFIRMATION
 
@@ -43,14 +39,12 @@ if [ "$CONFIRMATION" != "RESTORE" ]; then
   exit 1
 fi
 
-docker compose -f "$COMPOSE_FILE" exec -T mongo mongorestore \
-  --host 127.0.0.1 \
-  --port 27017 \
-  --username "$MONGO_ROOT_USERNAME" \
-  --password "$MONGO_ROOT_PASSWORD" \
-  --authenticationDatabase admin \
-  --db "$MONGO_DATABASE" \
-  --archive="$CONTAINER_BACKUP" \
+docker run --rm -i \
+  -v "$(pwd)/backups:/backups" \
+  "$MONGO_TOOLS_IMAGE" \
+  mongorestore \
+  --uri "$MONGODB_URI" \
+  --archive="/backups/$(basename "$BACKUP_FILE")" \
   --gzip \
   --drop
 

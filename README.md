@@ -77,8 +77,10 @@ pnpm lint
 
 ## Producción
 
-El proyecto incluye Dockerfile, Docker Compose, healthcheck, scripts de backup/restore y guía para Nginx.
+El proyecto incluye Dockerfile, Docker Compose app-only, healthcheck, scripts de backup/restore y guías para Nginx o EasyPanel con MongoDB externo.
 
 Consulta [docs/deployment.md](docs/deployment.md).
+
+Para EasyPanel revisa [docs/easypanel.md](docs/easypanel.md).
 
 Revisa [docs/production-checklist.md](docs/production-checklist.md) antes de publicar.

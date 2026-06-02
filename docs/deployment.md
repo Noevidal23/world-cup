@@ -1,6 +1,6 @@
 # Despliegue en VPS con Docker y Nginx
 
-Guía para publicar la quiniela en un VPS usando Docker Compose, MongoDB y Nginx como reverse proxy.
+Guía para publicar la quiniela en un VPS usando Docker Compose, MongoDB externo y Nginx como reverse proxy.
 
 ## Requisitos
 
@@ -8,6 +8,7 @@ Guía para publicar la quiniela en un VPS usando Docker Compose, MongoDB y Nginx
 - Dominio apuntando al VPS.
 - Nginx instalado en el host.
 - Certificado TLS, recomendado con Certbot.
+- MongoDB externo accesible desde el contenedor.
 
 ## Variables de entorno
 
@@ -22,11 +23,6 @@ Variables obligatorias:
 - `MONGODB_URI`
 - `SESSION_SECRET`
 - `BUILD_NODE_MEMORY_MB`
-- `MONGO_DATABASE`
-- `MONGO_ROOT_USERNAME`
-- `MONGO_ROOT_PASSWORD`
-- `MONGO_APP_USERNAME`
-- `MONGO_APP_PASSWORD`
 
 Genera un secreto de sesión:
 
@@ -37,6 +33,8 @@ openssl rand -hex 32
 En producción `NODE_ENV=production` activa cookies `secure`, por lo que debes servir la app sobre HTTPS detrás de Nginx.
 
 `BUILD_NODE_MEMORY_MB` controla la memoria disponible para el build de Nuxt dentro de Docker. El valor recomendado es `4096`; si tu VPS o Docker Desktop tiene menos memoria disponible, sube el límite de memoria del entorno Docker antes de ejecutar `docker compose build`.
+
+`MONGODB_URI` debe apuntar a una base externa. No uses `localhost` salvo que realmente Mongo esté dentro del mismo contenedor, porque desde Docker `localhost` es la app.
 
 ## Build y arranque
 
@@ -49,7 +47,6 @@ Ver logs:
 
 ```bash
 docker compose logs -f app
-docker compose logs -f mongo
 ```
 
 Estado de contenedores:
@@ -71,6 +68,17 @@ Antes del despliegue final, crea el administrador inicial desde el entorno de ma
 ```bash
 pnpm seed:dev
 ```
+
+En EasyPanel o despliegues donde no ejecutes scripts dentro del servidor, puedes activar temporalmente:
+
+```env
+SEED_ADMIN_ENABLED=true
+SEED_ADMIN_USERNAME=admin
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD="cambia-esta-password"
+```
+
+Después del primer arranque, cambia `SEED_ADMIN_ENABLED=false` y redeploya.
 
 Después carga el calendario:
 
@@ -175,5 +183,4 @@ Para inspeccionar:
 
 ```bash
 docker compose logs --tail=200 app
-docker compose logs --tail=200 mongo
 ```
