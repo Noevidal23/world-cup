@@ -12,8 +12,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    mongodbUri: process.env.MONGODB_URI,
-    sessionSecret: process.env.SESSION_SECRET,
+    mongodbUri: '',
+    sessionSecret: '',
     public: {
       appName: process.env.NUXT_PUBLIC_APP_NAME || 'Quiniela Mundial 2026'
     }

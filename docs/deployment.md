@@ -24,6 +24,8 @@ Variables obligatorias:
 - `SESSION_SECRET`
 - `BUILD_NODE_MEMORY_MB`
 
+`MONGODB_URI` y `SESSION_SECRET` deben existir cuando el contenedor arranca. Si tu panel las muestra solo como `build args`, muévelas al apartado de variables de entorno/runtime. Como alternativa compatible, Nuxt también puede leer `NUXT_MONGODB_URI` y `NUXT_SESSION_SECRET`.
+
 Genera un secreto de sesión:
 
 ```bash

@@ -20,7 +20,7 @@ NODE_OPTIONS=--max-old-space-size=4096
 
 ## Variables
 
-Configura estas variables en EasyPanel:
+Configura estas variables en EasyPanel como variables de entorno del servicio en runtime. No basta con pasarlas como build args: los build args solo existen durante `docker build` y no estarán disponibles cuando arranque Nuxt.
 
 ```env
 NODE_ENV=production
@@ -30,6 +30,8 @@ NUXT_PUBLIC_APP_NAME="Quiniela Mundial 2026"
 SESSION_SECRET="usa-openssl-rand-hex-32"
 MONGODB_URI="mongodb://usuario:password@host-mongo:27017/worldcup?authSource=admin"
 ```
+
+La aplicación también acepta `NUXT_SESSION_SECRET` y `NUXT_MONGODB_URI`, pero usa una sola variante por variable para evitar confusiones.
 
 Para MongoDB Atlas usa una URI tipo:
 

@@ -63,7 +63,7 @@ export const connectMongo = async () => {
     console.log('Connecting to MongoDB with URI:', mongo.uri)
 
     mongoose.set('bufferCommands', false)
-    globalThis.mongooseConnection = mongoose.connect('mongodb://wcuser:worldcup123@0.0.0.0:27017/worldcup?authSource=worldcup')
+    globalThis.mongooseConnection = mongoose.connect('mongodb://wcuser:worldcup123@127.0.0.1:27017/worldcup?authSource=worldcup')
       .then((connection) => {
         logMongoConnection('info', 'Conexion a MongoDB exitosa', {
           readyState: connection.connection.readyState,

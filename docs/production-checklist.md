@@ -4,6 +4,7 @@
 
 - `MONGODB_URI` apunta a una base con backups automáticos.
 - `SESSION_SECRET` tiene al menos 32 caracteres aleatorios.
+- Ambas variables están configuradas como variables de entorno runtime del contenedor, no solo como build args.
 - `NUXT_PUBLIC_APP_NAME` contiene el nombre público.
 - `SEED_ADMIN_ENABLED=false` después de crear el primer administrador.
 - `SEED_ADMIN_PASSWORD` no queda visible en capturas, logs ni documentación.

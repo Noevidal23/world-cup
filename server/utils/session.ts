@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createError, deleteCookie, getCookie, setCookie, type H3Event } from 'h3'
+import { validateServerEnv } from '../validators/env'
 
 const AUTH_COOKIE = 'wc_session'
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
@@ -12,14 +13,14 @@ interface SessionPayload {
 const getSessionSecret = () => {
   const config = useRuntimeConfig()
 
-  if (!config.sessionSecret || config.sessionSecret.length < 32) {
+  try {
+    return validateServerEnv(config).sessionSecret
+  } catch {
     throw createError({
       statusCode: 500,
       statusMessage: 'Session secret is not configured'
     })
   }
-
-  return config.sessionSecret
 }
 
 const sign = (value: string) => createHmac('sha256', getSessionSecret()).update(value).digest('base64url')

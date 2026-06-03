@@ -1,17 +1,18 @@
-const required = [
-  'MONGODB_URI',
-  'SESSION_SECRET'
-]
+const getEnv = (...keys) => keys.map(key => process.env[key]).find(value => value && value.length > 0)
 
-const missing = required.filter(key => !process.env[key])
+const missing = [
+  ['MONGODB_URI', 'NUXT_MONGODB_URI'],
+  ['SESSION_SECRET', 'NUXT_SESSION_SECRET']
+].filter(keys => !getEnv(...keys))
+  .map(keys => keys.join(' or '))
 
 if (missing.length > 0) {
   console.error(`Missing required environment variables: ${missing.join(', ')}`)
   process.exit(1)
 }
 
-if ((process.env.SESSION_SECRET || '').length < 32) {
-  console.error('SESSION_SECRET must be at least 32 characters long')
+if ((getEnv('SESSION_SECRET', 'NUXT_SESSION_SECRET') || '').length < 32) {
+  console.error('SESSION_SECRET or NUXT_SESSION_SECRET must be at least 32 characters long')
   process.exit(1)
 }
 
