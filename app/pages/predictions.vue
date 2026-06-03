@@ -12,6 +12,7 @@ interface PredictionsResponse {
 const toast = useToast()
 const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 const savingMatchId = ref<string | null>(null)
+const activePredictionTab = ref('pending')
 
 const { data, pending, refresh } = await useFetch<PredictionsResponse>('/api/predictions', {
   headers,
@@ -25,7 +26,6 @@ interface PredictionDraft {
   extraAway: number | null
   penaltyHome: number | null
   penaltyAway: number | null
-  penaltyWinner?: 'home' | 'away'
 }
 
 const draftScores = reactive<Record<string, PredictionDraft>>({})
@@ -71,25 +71,49 @@ const groupByStage = (items: PredictionMatch[]) => stageOrder
 const groupedMatches = computed(() => [
   {
     key: 'pending',
+    value: 'pending',
     title: 'Pendientes',
+    label: 'Pendientes',
     icon: 'i-lucide-clock-3',
     color: 'warning' as const,
+    badge: { label: pendingMatches.value.length, color: 'warning' as const, variant: 'solid' as const },
+    ui: {
+      trigger: 'border border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:border-amber-500 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-900/50'
+    },
+    emptyTitle: 'No tienes pronósticos pendientes.',
+    emptyDescription: 'Cuando haya partidos disponibles para capturar aparecerán aquí.',
     matches: pendingMatches.value,
     stages: groupByStage(pendingMatches.value)
   },
   {
     key: 'submitted',
+    value: 'submitted',
     title: 'Realizados',
+    label: 'Realizados',
     icon: 'i-lucide-check-circle-2',
     color: 'success' as const,
+    badge: { label: submittedMatches.value.length, color: 'success' as const, variant: 'solid' as const },
+    ui: {
+      trigger: 'border border-emerald-300 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-600 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100 dark:hover:bg-emerald-900/50'
+    },
+    emptyTitle: 'No tienes pronósticos realizados.',
+    emptyDescription: 'Los partidos que guardes y aún puedas editar se mostrarán aquí.',
     matches: submittedMatches.value,
     stages: groupByStage(submittedMatches.value)
   },
   {
     key: 'closed',
+    value: 'closed',
     title: 'Cerrados',
+    label: 'Cerrados',
     icon: 'i-lucide-lock',
     color: 'neutral' as const,
+    badge: { label: closedMatches.value.length, color: 'error' as const, variant: 'solid' as const },
+    ui: {
+      trigger: 'border border-rose-300 bg-rose-50 text-rose-950 hover:bg-rose-100 data-[state=active]:bg-rose-600 data-[state=active]:text-white data-[state=active]:border-rose-600 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/50'
+    },
+    emptyTitle: 'No hay partidos cerrados.',
+    emptyDescription: 'Los partidos iniciados o bloqueados aparecerán en esta sección.',
     matches: closedMatches.value,
     stages: groupByStage(closedMatches.value)
   }
@@ -103,8 +127,7 @@ const ensureDraftScore = (match: PredictionMatch) => {
       extraHome: match.prediction?.predictedExtraTimeHomeGoals ?? null,
       extraAway: match.prediction?.predictedExtraTimeAwayGoals ?? null,
       penaltyHome: match.prediction?.predictedPenaltyHomeGoals ?? null,
-      penaltyAway: match.prediction?.predictedPenaltyAwayGoals ?? null,
-      penaltyWinner: match.prediction?.predictedPenaltyWinner
+      penaltyAway: match.prediction?.predictedPenaltyAwayGoals ?? null
     }
   }
 
@@ -142,10 +165,33 @@ const isExtraTimeDrawDraft = (match: PredictionMatch) => {
   return draft.extraHome !== null && draft.extraAway !== null && draft.extraHome === draft.extraAway
 }
 
-const penaltyWinnerOptions = [
-  { label: 'Local', value: 'home' },
-  { label: 'Visitante', value: 'away' }
-]
+const extraTimeMinGoals = (match: PredictionMatch, side: 'home' | 'away') => {
+  const draft = ensureDraftScore(match)
+  const value = side === 'home' ? draft.home : draft.away
+
+  return value ?? 0
+}
+
+const normalizeExtraTimeDraft = (match: PredictionMatch) => {
+  const draft = ensureDraftScore(match)
+
+  if (draft.home === null || draft.away === null) {
+    return
+  }
+
+  if (draft.extraHome !== null && draft.extraHome < draft.home) {
+    draft.extraHome = draft.home
+  }
+
+  if (draft.extraAway !== null && draft.extraAway < draft.away) {
+    draft.extraAway = draft.away
+  }
+}
+
+const isPenaltyDrawDraft = (match: PredictionMatch) => {
+  const draft = ensureDraftScore(match)
+  return draft.penaltyHome !== null && draft.penaltyAway !== null && draft.penaltyHome === draft.penaltyAway
+}
 
 const predictionScoreLabel = (match: PredictionMatch) => {
   const prediction = match.prediction
@@ -249,11 +295,31 @@ const savePrediction = async (match: PredictionMatch) => {
       body.predictedExtraTimeHomeGoals = Number(draft.extraHome)
       body.predictedExtraTimeAwayGoals = Number(draft.extraAway)
 
+      if (draft.extraHome < draft.home || draft.extraAway < draft.away) {
+        toast.add({
+          title: 'Tiempo extra inválido',
+          description: 'El marcador tras tiempos extra debe partir del marcador de 90 minutos.',
+          color: 'warning',
+          icon: 'i-lucide-circle-alert'
+        })
+        return
+      }
+
       if (draft.extraHome === draft.extraAway) {
-        if (draft.penaltyHome === null || draft.penaltyAway === null || !draft.penaltyWinner) {
+        if (draft.penaltyHome === null || draft.penaltyAway === null) {
           toast.add({
             title: 'Penales incompletos',
-            description: 'Ingresa marcador y ganador por penales.',
+            description: 'Ingresa el marcador de penales para local y visitante.',
+            color: 'warning',
+            icon: 'i-lucide-circle-alert'
+          })
+          return
+        }
+
+        if (draft.penaltyHome === draft.penaltyAway) {
+          toast.add({
+            title: 'Penales inválidos',
+            description: 'El marcador de penales debe definir un ganador.',
             color: 'warning',
             icon: 'i-lucide-circle-alert'
           })
@@ -262,7 +328,6 @@ const savePrediction = async (match: PredictionMatch) => {
 
         body.predictedPenaltyHomeGoals = Number(draft.penaltyHome)
         body.predictedPenaltyAwayGoals = Number(draft.penaltyAway)
-        body.predictedPenaltyWinner = draft.penaltyWinner
       }
     }
 
@@ -330,221 +395,293 @@ const savePrediction = async (match: PredictionMatch) => {
 
         <div
           v-else
-          class="space-y-8"
+          class="space-y-6"
         >
-          <section
-            v-for="group in groupedMatches"
-            :key="group.key"
-            class="space-y-3"
+          <UTabs
+            v-model="activePredictionTab"
+            :items="groupedMatches"
+            variant="link"
+            :unmount-on-hide="false"
+            :ui="{
+              list: 'grid w-full grid-cols-1 gap-2 sm:grid-cols-3',
+              trigger: 'justify-center',
+              content: 'pt-6'
+            }"
           >
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-2">
+            <template #content="{ item: group }">
+              <div
+                v-if="group.matches.length === 0"
+                class="rounded-md border border-dashed border-default px-4 py-10 text-center"
+              >
                 <UIcon
                   :name="group.icon"
-                  class="size-5 text-muted"
+                  class="mx-auto mb-3 size-7 text-muted"
                 />
-                <h2 class="text-base font-semibold text-highlighted">
-                  {{ group.title }}
-                </h2>
+                <p class="font-medium text-highlighted">
+                  {{ group.emptyTitle }}
+                </p>
+                <p class="mt-1 text-sm text-muted">
+                  {{ group.emptyDescription }}
+                </p>
               </div>
-              <UBadge
-                :label="String(group.matches.length)"
-                :color="group.color"
-                variant="subtle"
-              />
-            </div>
 
-            <div
-              v-if="group.matches.length === 0"
-              class="rounded-md border border-dashed border-default px-4 py-6 text-center text-sm text-muted"
-            >
-              Sin partidos en esta sección.
-            </div>
-
-            <div
-              v-else
-              class="space-y-5"
-            >
-              <section
-                v-for="stageGroup in group.stages"
-                :key="`${group.key}-${stageGroup.stage}`"
-                class="space-y-3"
+              <div
+                v-else
+                class="space-y-5"
               >
-                <div class="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
-                  <h3 class="text-sm font-semibold text-highlighted">
-                    {{ stageGroup.title }}
-                  </h3>
-                  <UBadge
-                    :label="String(stageGroup.matches.length)"
-                    color="neutral"
-                    variant="subtle"
-                  />
-                </div>
-
-                <article
-                  v-for="match in stageGroup.matches"
-                  :key="match.id"
-                  class="grid gap-4 rounded-md border border-l-4 px-4 py-4 lg:grid-cols-[1fr_260px_180px]"
-                  :class="closedMatchClass(match)"
+                <section
+                  v-for="stageGroup in group.stages"
+                  :key="`${group.key}-${stageGroup.stage}`"
+                  class="space-y-3"
                 >
-                  <div class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <UBadge
-                        :label="`Partido ${match.matchNumber}`"
-                        color="neutral"
-                        variant="subtle"
-                      />
-                      <UBadge
-                        v-if="match.group"
-                        :label="`Grupo ${match.group}`"
-                        variant="subtle"
-                      />
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-lg font-semibold text-highlighted">
-                      <TeamIdentity
-                        :team="teamFor(match, 'home')"
-                        :fallback="slotFor(match, 'home')"
-                        compact
-                      />
-                      <span class="text-sm font-medium text-muted">vs</span>
-                      <TeamIdentity
-                        :team="teamFor(match, 'away')"
-                        :fallback="slotFor(match, 'away')"
-                        compact
-                      />
-                    </div>
-
-                    <p class="text-sm text-muted">
-                      {{ new Date(match.kickoffAt).toLocaleString() }}
-                      <span v-if="match.stadium"> · {{ match.stadium }}</span>
-                      <span v-if="match.city"> · {{ match.city }}</span>
-                    </p>
-
-                    <p
-                      v-if="match.lockReason"
-                      class="text-sm text-muted"
-                    >
-                      {{ match.lockReason }}
-                    </p>
-                  </div>
-
-                  <div class="space-y-3">
-                    <div>
-                      <p class="mb-1 text-xs font-medium text-muted">
-                        90 minutos
-                      </p>
-                      <div class="flex items-center gap-3">
-                        <UInput
-                          v-model.number="ensureDraftScore(match).home"
-                          type="number"
-                          min="0"
-                          class="w-24"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Goles de ${displayTeam(match, 'home')} en 90 minutos`"
-                        />
-                        <span class="text-muted">-</span>
-                        <UInput
-                          v-model.number="ensureDraftScore(match).away"
-                          type="number"
-                          min="0"
-                          class="w-24"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Goles de ${displayTeam(match, 'away')} en 90 minutos`"
-                        />
-                      </div>
-                    </div>
-
-                    <div v-if="isKnockoutMatch(match) && isRegularDrawDraft(match)">
-                      <p class="mb-1 text-xs font-medium text-muted">
-                        Tras tiempos extra
-                      </p>
-                      <div class="flex items-center gap-3">
-                        <UInput
-                          v-model.number="ensureDraftScore(match).extraHome"
-                          type="number"
-                          min="0"
-                          class="w-24"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Goles de ${displayTeam(match, 'home')} tras tiempos extra`"
-                        />
-                        <span class="text-muted">-</span>
-                        <UInput
-                          v-model.number="ensureDraftScore(match).extraAway"
-                          type="number"
-                          min="0"
-                          class="w-24"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Goles de ${displayTeam(match, 'away')} tras tiempos extra`"
-                        />
-                      </div>
-                    </div>
-
-                    <div v-if="isKnockoutMatch(match) && isRegularDrawDraft(match) && isExtraTimeDrawDraft(match)">
-                      <p class="mb-1 text-xs font-medium text-muted">
-                        Penales
-                      </p>
-                      <div class="flex flex-wrap items-center gap-3">
-                        <UInput
-                          v-model.number="ensureDraftScore(match).penaltyHome"
-                          type="number"
-                          min="0"
-                          class="w-20"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Penales de ${displayTeam(match, 'home')}`"
-                        />
-                        <span class="text-muted">-</span>
-                        <UInput
-                          v-model.number="ensureDraftScore(match).penaltyAway"
-                          type="number"
-                          min="0"
-                          class="w-20"
-                          :disabled="!match.canPredict"
-                          :aria-label="`Penales de ${displayTeam(match, 'away')}`"
-                        />
-                        <USelect
-                          v-model="ensureDraftScore(match).penaltyWinner"
-                          :items="penaltyWinnerOptions"
-                          placeholder="Ganador"
-                          class="w-32"
-                          :disabled="!match.canPredict"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-col items-start gap-2 lg:items-end">
+                  <div class="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
+                    <h2 class="text-sm font-semibold text-highlighted">
+                      {{ stageGroup.title }}
+                    </h2>
                     <UBadge
-                      :label="predictionStatusLabel(match)"
-                      :color="predictionStatusColor(match)"
+                      :label="String(stageGroup.matches.length)"
+                      color="neutral"
                       variant="subtle"
                     />
-
-                    <p
-                      v-if="match.prediction?.status === 'evaluated'"
-                      class="text-sm font-medium text-highlighted"
-                    >
-                      {{ match.prediction.totalPoints }} / {{ match.prediction.possiblePoints }} pts
-                    </p>
-                    <p
-                      v-else-if="match.prediction"
-                      class="text-sm text-muted"
-                    >
-                      {{ predictionScoreLabel(match) }}
-                    </p>
-
-                    <UButton
-                      v-if="match.canPredict"
-                      icon="i-lucide-save"
-                      :label="match.prediction ? 'Actualizar' : 'Guardar'"
-                      :loading="savingMatchId === match.id"
-                      @click="savePrediction(match)"
-                    />
                   </div>
-                </article>
-              </section>
-            </div>
-          </section>
+
+                  <article
+                    v-for="match in stageGroup.matches"
+                    :key="match.id"
+                    class="grid gap-4 rounded-md border border-l-4 px-4 py-4 lg:grid-cols-[1fr_260px_180px]"
+                    :class="closedMatchClass(match)"
+                  >
+                    <div class="space-y-2">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <UBadge
+                          :label="`Partido ${match.matchNumber}`"
+                          color="neutral"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="match.group"
+                          :label="`Grupo ${match.group}`"
+                          variant="subtle"
+                        />
+                      </div>
+
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-lg font-semibold text-highlighted">
+                        <TeamIdentity
+                          :team="teamFor(match, 'home')"
+                          :fallback="slotFor(match, 'home')"
+                          compact
+                        />
+                        <span class="text-sm font-medium text-muted">vs</span>
+                        <TeamIdentity
+                          :team="teamFor(match, 'away')"
+                          :fallback="slotFor(match, 'away')"
+                          compact
+                        />
+                      </div>
+
+                      <p class="text-sm text-muted">
+                        {{ new Date(match.kickoffAt).toLocaleString() }}
+                        <span v-if="match.stadium"> · {{ match.stadium }}</span>
+                        <span v-if="match.city"> · {{ match.city }}</span>
+                      </p>
+
+                      <p
+                        v-if="match.lockReason"
+                        class="text-sm text-muted"
+                      >
+                        {{ match.lockReason }}
+                      </p>
+                      <UBadge
+                        v-if="getFinalScoreLabel(match)"
+                        :label="`Final · ${getFinalScoreLabel(match)}`"
+                        color="primary"
+                        variant="solid"
+                      />
+                    </div>
+
+                    <div class="space-y-3">
+                      <div class="rounded-md border border-default bg-muted/20 p-3">
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                          <p class="text-xs font-semibold uppercase text-muted">
+                            90 minutos
+                          </p>
+                          <UBadge
+                            label="Marcador reglamentario"
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                        </div>
+                        <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+                          <UFormField
+                            :label="displayTeam(match, 'home')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).home"
+                              type="number"
+                              min="0"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Goles de ${displayTeam(match, 'home')} en 90 minutos`"
+                            />
+                          </UFormField>
+                          <span class="pb-2 text-muted">-</span>
+                          <UFormField
+                            :label="displayTeam(match, 'away')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).away"
+                              type="number"
+                              min="0"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Goles de ${displayTeam(match, 'away')} en 90 minutos`"
+                            />
+                          </UFormField>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="isKnockoutMatch(match) && isRegularDrawDraft(match)"
+                        class="rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20"
+                      >
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                          <p class="text-xs font-semibold uppercase text-amber-900 dark:text-amber-100">
+                            Tiempos extra
+                          </p>
+                          <UBadge
+                            label="Marcador acumulado"
+                            color="warning"
+                            variant="solid"
+                            size="sm"
+                          />
+                        </div>
+                        <p class="mb-2 text-xs text-amber-900/80 dark:text-amber-100/80">
+                          Debe partir del empate en 90 minutos. No puede ser menor al {{ ensureDraftScore(match).home }}-{{ ensureDraftScore(match).away }}.
+                        </p>
+                        <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+                          <UFormField
+                            :label="displayTeam(match, 'home')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).extraHome"
+                              type="number"
+                              :min="extraTimeMinGoals(match, 'home')"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Goles de ${displayTeam(match, 'home')} tras tiempos extra`"
+                              @blur="normalizeExtraTimeDraft(match)"
+                            />
+                          </UFormField>
+                          <span class="pb-2 text-muted">-</span>
+                          <UFormField
+                            :label="displayTeam(match, 'away')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).extraAway"
+                              type="number"
+                              :min="extraTimeMinGoals(match, 'away')"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Goles de ${displayTeam(match, 'away')} tras tiempos extra`"
+                              @blur="normalizeExtraTimeDraft(match)"
+                            />
+                          </UFormField>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="isKnockoutMatch(match) && isRegularDrawDraft(match) && isExtraTimeDrawDraft(match)"
+                        class="rounded-md border border-sky-300 bg-sky-50/70 p-3 dark:border-sky-700 dark:bg-sky-950/20"
+                      >
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                          <p class="text-xs font-semibold uppercase text-sky-900 dark:text-sky-100">
+                            Penales
+                          </p>
+                          <UBadge
+                            label="Local - Visitante"
+                            color="info"
+                            variant="solid"
+                            size="sm"
+                          />
+                        </div>
+                        <p class="mb-2 text-xs text-sky-900/80 dark:text-sky-100/80">
+                          Ingresa solo el marcador de la tanda. El ganador se deduce automáticamente.
+                        </p>
+                        <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+                          <UFormField
+                            :label="displayTeam(match, 'home')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).penaltyHome"
+                              type="number"
+                              min="0"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Penales de ${displayTeam(match, 'home')}`"
+                            />
+                          </UFormField>
+                          <span class="pb-2 text-muted">-</span>
+                          <UFormField
+                            :label="displayTeam(match, 'away')"
+                            size="xs"
+                          >
+                            <UInput
+                              v-model.number="ensureDraftScore(match).penaltyAway"
+                              type="number"
+                              min="0"
+                              class="w-full"
+                              :disabled="!match.canPredict"
+                              :aria-label="`Penales de ${displayTeam(match, 'away')}`"
+                            />
+                          </UFormField>
+                        </div>
+                        <p
+                          v-if="isPenaltyDrawDraft(match)"
+                          class="mt-2 text-xs font-medium text-red-700 dark:text-red-300"
+                        >
+                          La tanda de penales no puede terminar empatada.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex flex-col items-start gap-2 lg:items-end">
+                      <UBadge
+                        :label="predictionStatusLabel(match)"
+                        :color="predictionStatusColor(match)"
+                        variant="subtle"
+                      />
+
+                      <p
+                        v-if="match.prediction?.status === 'evaluated'"
+                        class="text-sm font-medium text-highlighted"
+                      >
+                        {{ match.prediction.totalPoints }} / {{ match.prediction.possiblePoints }} pts
+                      </p>
+                      <p
+                        v-else-if="match.prediction"
+                        class="text-sm text-muted"
+                      >
+                        {{ predictionScoreLabel(match) }}
+                      </p>
+
+                      <UButton
+                        v-if="match.canPredict"
+                        icon="i-lucide-save"
+                        :label="match.prediction ? 'Actualizar' : 'Guardar'"
+                        :loading="savingMatchId === match.id"
+                        @click="savePrediction(match)"
+                      />
+                    </div>
+                  </article>
+                </section>
+              </div>
+            </template>
+          </UTabs>
         </div>
       </UCard>
     </div>

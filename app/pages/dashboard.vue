@@ -65,11 +65,7 @@ const displayTeam = (match: AdminMatch, side: 'home' | 'away') => {
 }
 
 const scoreLabel = (match: AdminMatch) => {
-  if (match.regularHomeGoals === undefined || match.regularAwayGoals === undefined) {
-    return '-'
-  }
-
-  return `${match.regularHomeGoals}-${match.regularAwayGoals}`
+  return getFinalScoreLabel(match) || '-'
 }
 
 const stageLabel = (stage: AdminMatch['stage']) => {
@@ -265,6 +261,14 @@ const adminAlertItems = computed(() => {
                     <p class="text-sm text-muted">
                       {{ stageLabel(match.stage) }} · {{ formatDate(match.kickoffAt) }}
                     </p>
+                    <UBadge
+                      v-if="getFinalScoreLabel(match)"
+                      :label="`Final · ${getFinalScoreLabel(match)}`"
+                      color="primary"
+                      variant="solid"
+                      size="sm"
+                      class="mt-1"
+                    />
                   </div>
                   <UBadge
                     :label="match.group || match.matchNumber.toString()"
@@ -437,11 +441,19 @@ const adminAlertItems = computed(() => {
                     <p class="text-sm text-muted">
                       {{ formatDate(match.kickoffAt) }}
                     </p>
+                    <UBadge
+                      v-if="getFinalScoreLabel(match)"
+                      :label="`Final · ${getFinalScoreLabel(match)}`"
+                      color="primary"
+                      variant="solid"
+                      size="sm"
+                      class="mt-1"
+                    />
                   </div>
                   <UBadge
-                    :label="match.status"
+                    :label="getFinalScoreLabel(match) ? `Final · ${getFinalScoreLabel(match)}` : match.status"
                     color="neutral"
-                    variant="subtle"
+                    :variant="getFinalScoreLabel(match) ? 'solid' : 'subtle'"
                   />
                 </div>
               </div>

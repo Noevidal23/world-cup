@@ -4,58 +4,9 @@ import { PredictionModel } from '../../models/Prediction'
 import { rankingService } from '../../services/RankingService'
 import { requireParticipantUser } from '../../utils/auth'
 import { connectMongo } from '../../utils/db'
-import { calculatePredictedResult, getPredictionLockReason, serializePrediction } from '../../utils/predictions'
+import { buildPredictionValues } from '../../utils/predictionValues'
+import { getPredictionLockReason, serializePrediction } from '../../utils/predictions'
 import { predictionInputSchema } from '../../validators/predictions'
-
-const knockoutStages = new Set(['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'])
-
-const buildPredictionValues = (input: typeof predictionInputSchema._output, match: { stage: string }) => {
-  const predictedResult = calculatePredictedResult(input.predictedHomeGoals, input.predictedAwayGoals)
-  const values: Record<string, unknown> = {
-    predictedHomeGoals: input.predictedHomeGoals,
-    predictedAwayGoals: input.predictedAwayGoals,
-    predictedResult,
-    predictedExtraTimeHomeGoals: undefined,
-    predictedExtraTimeAwayGoals: undefined,
-    predictedExtraTimeResult: undefined,
-    predictedPenaltyHomeGoals: undefined,
-    predictedPenaltyAwayGoals: undefined,
-    predictedPenaltyWinner: undefined
-  }
-
-  if (!knockoutStages.has(match.stage) || predictedResult !== 'draw') {
-    return values
-  }
-
-  if (input.predictedExtraTimeHomeGoals === undefined || input.predictedExtraTimeAwayGoals === undefined) {
-    throw createError({
-      statusCode: 400,
-      message: 'Captura marcador tras tiempos extra'
-    })
-  }
-
-  const predictedExtraTimeResult = calculatePredictedResult(input.predictedExtraTimeHomeGoals, input.predictedExtraTimeAwayGoals)
-  values.predictedExtraTimeHomeGoals = input.predictedExtraTimeHomeGoals
-  values.predictedExtraTimeAwayGoals = input.predictedExtraTimeAwayGoals
-  values.predictedExtraTimeResult = predictedExtraTimeResult
-
-  if (predictedExtraTimeResult !== 'draw') {
-    return values
-  }
-
-  if (input.predictedPenaltyHomeGoals === undefined || input.predictedPenaltyAwayGoals === undefined || !input.predictedPenaltyWinner) {
-    throw createError({
-      statusCode: 400,
-      message: 'Captura marcador y ganador por penales'
-    })
-  }
-
-  values.predictedPenaltyHomeGoals = input.predictedPenaltyHomeGoals
-  values.predictedPenaltyAwayGoals = input.predictedPenaltyAwayGoals
-  values.predictedPenaltyWinner = input.predictedPenaltyWinner
-
-  return values
-}
 
 export default defineEventHandler(async (event) => {
   const user = await requireParticipantUser(event)

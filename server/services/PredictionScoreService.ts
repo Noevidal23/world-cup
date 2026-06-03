@@ -197,9 +197,13 @@ export class PredictionScoreService {
       const officialPenaltyWinner = match.penaltyWinner || (match.finalWinner === 'home' || match.finalWinner === 'away' ? match.finalWinner : undefined)
 
       if (match.penaltyHomeGoals !== undefined && match.penaltyHomeGoals !== null && match.penaltyAwayGoals !== undefined && match.penaltyAwayGoals !== null && officialPenaltyWinner) {
+        const predictedPenaltyWinner = prediction.predictedPenaltyHomeGoals !== undefined && prediction.predictedPenaltyHomeGoals !== null && prediction.predictedPenaltyAwayGoals !== undefined && prediction.predictedPenaltyAwayGoals !== null
+          ? calculateResultSide(prediction.predictedPenaltyHomeGoals, prediction.predictedPenaltyAwayGoals)
+          : undefined
+
         points.possiblePoints += 2
 
-        if (prediction.predictedPenaltyWinner === officialPenaltyWinner) {
+        if (predictedPenaltyWinner === officialPenaltyWinner) {
           points.pointsWinner += 1
         }
 

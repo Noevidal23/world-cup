@@ -177,6 +177,13 @@ const pointsLabel = (prediction: ParticipantPrediction) =>
                 <p class="text-sm text-muted">
                   {{ new Date(item.match.kickoffAt).toLocaleString() }}
                 </p>
+                <UBadge
+                  v-if="getFinalScoreLabel(item.match)"
+                  :label="`Final · ${getFinalScoreLabel(item.match)}`"
+                  color="primary"
+                  variant="solid"
+                  size="sm"
+                />
               </div>
             </template>
 

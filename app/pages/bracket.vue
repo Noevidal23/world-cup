@@ -88,6 +88,14 @@ const slotsForMatch = (matchNumber: number) =>
               <p class="text-sm font-semibold text-highlighted">
                 Partido {{ match.matchNumber }}
               </p>
+              <UBadge
+                v-if="getFinalScoreLabel(match)"
+                :label="`Final · ${getFinalScoreLabel(match)}`"
+                color="primary"
+                variant="solid"
+                size="sm"
+                class="mt-2"
+              />
               <div class="mt-2 space-y-2">
                 <div
                   v-for="slot in slotsForMatch(match.matchNumber)"

@@ -39,8 +39,7 @@ const finalForm = reactive({
   extraTimeHomeGoals: null as number | null,
   extraTimeAwayGoals: null as number | null,
   penaltyHomeGoals: null as number | null,
-  penaltyAwayGoals: null as number | null,
-  penaltyWinner: 'home' as 'home' | 'away'
+  penaltyAwayGoals: null as number | null
 })
 
 const query = computed(() => ({
@@ -75,11 +74,6 @@ const statusOptions = [
   { label: 'Cancelados', value: 'cancelled' }
 ]
 
-const penaltyWinnerOptions = [
-  { label: 'Local', value: 'home' },
-  { label: 'Visitante', value: 'away' }
-]
-
 const displayTeam = (match: AdminMatch, side: 'home' | 'away') => {
   const team = side === 'home' ? match.homeTeam : match.awayTeam
   const slot = side === 'home' ? match.homeSlotLabel : match.awaySlotLabel
@@ -105,7 +99,43 @@ const openMatch = (match: AdminMatch) => {
   finalForm.extraTimeAwayGoals = match.extraTimeAwayGoals ?? null
   finalForm.penaltyHomeGoals = match.penaltyHomeGoals ?? null
   finalForm.penaltyAwayGoals = match.penaltyAwayGoals ?? null
-  finalForm.penaltyWinner = match.penaltyWinner === 'away' ? 'away' : 'home'
+}
+
+const resultSide = (homeGoals: number | null, awayGoals: number | null) => {
+  if (homeGoals === null || awayGoals === null) {
+    return undefined
+  }
+
+  if (homeGoals > awayGoals) {
+    return 'home'
+  }
+
+  if (awayGoals > homeGoals) {
+    return 'away'
+  }
+
+  return 'draw'
+}
+
+const isSelectedKnockoutMatch = computed(() => selectedMatch.value ? selectedMatch.value.stage !== 'group' : false)
+const regularResultDraft = computed(() => resultSide(finalForm.regularHomeGoals, finalForm.regularAwayGoals))
+const requiresExtraTimeDraft = computed(() => isSelectedKnockoutMatch.value && regularResultDraft.value === 'draw')
+const extraTimeResultDraft = computed(() => resultSide(finalForm.extraTimeHomeGoals, finalForm.extraTimeAwayGoals))
+const requiresPenaltiesDraft = computed(() => requiresExtraTimeDraft.value && extraTimeResultDraft.value === 'draw')
+const isPenaltyDrawDraft = computed(() => resultSide(finalForm.penaltyHomeGoals, finalForm.penaltyAwayGoals) === 'draw')
+
+const normalizeFinalExtraTimeDraft = () => {
+  if (!requiresExtraTimeDraft.value) {
+    return
+  }
+
+  if (finalForm.extraTimeHomeGoals !== null && finalForm.extraTimeHomeGoals < finalForm.regularHomeGoals) {
+    finalForm.extraTimeHomeGoals = finalForm.regularHomeGoals
+  }
+
+  if (finalForm.extraTimeAwayGoals !== null && finalForm.extraTimeAwayGoals < finalForm.regularAwayGoals) {
+    finalForm.extraTimeAwayGoals = finalForm.regularAwayGoals
+  }
 }
 
 const refreshSelected = async () => {
@@ -152,9 +182,44 @@ const submitFinal = async () => {
   savingFinal.value = true
 
   try {
+    const body: Record<string, unknown> = {
+      regularHomeGoals: finalForm.regularHomeGoals,
+      regularAwayGoals: finalForm.regularAwayGoals
+    }
+
+    if (requiresExtraTimeDraft.value) {
+      if (finalForm.extraTimeHomeGoals === null || finalForm.extraTimeAwayGoals === null) {
+        toast.add({ title: 'Tiempo extra incompleto', description: 'Captura el marcador acumulado tras tiempos extra.', color: 'warning', icon: 'i-lucide-circle-alert' })
+        return
+      }
+
+      if (finalForm.extraTimeHomeGoals < finalForm.regularHomeGoals || finalForm.extraTimeAwayGoals < finalForm.regularAwayGoals) {
+        toast.add({ title: 'Tiempo extra inválido', description: 'El marcador tras tiempos extra no puede ser menor al marcador de 90 minutos.', color: 'warning', icon: 'i-lucide-circle-alert' })
+        return
+      }
+
+      body.extraTimeHomeGoals = finalForm.extraTimeHomeGoals
+      body.extraTimeAwayGoals = finalForm.extraTimeAwayGoals
+    }
+
+    if (requiresPenaltiesDraft.value) {
+      if (finalForm.penaltyHomeGoals === null || finalForm.penaltyAwayGoals === null) {
+        toast.add({ title: 'Penales incompletos', description: 'Captura el marcador de penales.', color: 'warning', icon: 'i-lucide-circle-alert' })
+        return
+      }
+
+      if (isPenaltyDrawDraft.value) {
+        toast.add({ title: 'Penales inválidos', description: 'El marcador de penales debe definir un ganador.', color: 'warning', icon: 'i-lucide-circle-alert' })
+        return
+      }
+
+      body.penaltyHomeGoals = finalForm.penaltyHomeGoals
+      body.penaltyAwayGoals = finalForm.penaltyAwayGoals
+    }
+
     await $fetch(`/api/admin/matches/${selectedMatch.value.id}/final-result`, {
       method: 'PUT',
-      body: finalForm,
+      body,
       credentials: 'include'
     })
     toast.add({ title: 'Resultado final guardado', color: 'success', icon: 'i-lucide-check' })
@@ -267,6 +332,14 @@ const recalculatePoints = async () => {
                   >
                     Parcial: {{ match.partialHomeGoals }}-{{ match.partialAwayGoals }} · {{ match.partialStatusText }}
                   </span>
+                  <UBadge
+                    v-if="getFinalScoreLabel(match)"
+                    :label="`Final · ${getFinalScoreLabel(match)}`"
+                    color="primary"
+                    variant="solid"
+                    size="sm"
+                    class="mt-2"
+                  />
                 </span>
                 <span class="flex items-start justify-start md:justify-end">
                   <UBadge
@@ -324,6 +397,14 @@ const recalculatePoints = async () => {
                 <p class="text-muted">
                   Modo: {{ selectedMatch.scoringMode }}
                 </p>
+                <UBadge
+                  v-if="getFinalScoreLabel(selectedMatch)"
+                  :label="`Final · ${getFinalScoreLabel(selectedMatch)}`"
+                  color="primary"
+                  variant="solid"
+                  size="sm"
+                  class="mt-2"
+                />
               </div>
 
               <form
@@ -390,47 +471,76 @@ const recalculatePoints = async () => {
                   />
                 </div>
 
-                <template v-if="selectedMatch.scoringMode === 'extra_time' || selectedMatch.scoringMode === 'penalties_final'">
-                  <p class="text-sm text-muted">
-                    Tiempos extra
-                  </p>
-                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <UInput
-                      v-model.number="finalForm.extraTimeHomeGoals"
-                      type="number"
-                      min="0"
-                    />
-                    <span class="text-muted">-</span>
-                    <UInput
-                      v-model.number="finalForm.extraTimeAwayGoals"
-                      type="number"
-                      min="0"
-                    />
+                <template v-if="requiresExtraTimeDraft">
+                  <div class="rounded-md border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <p class="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        Tiempos extra
+                      </p>
+                      <UBadge
+                        label="Marcador acumulado"
+                        color="warning"
+                        variant="solid"
+                        size="sm"
+                      />
+                    </div>
+                    <p class="mb-2 text-xs text-amber-900/80 dark:text-amber-100/80">
+                      Obligatorio porque el tiempo regular terminó empatado. No puede ser menor al {{ finalForm.regularHomeGoals }}-{{ finalForm.regularAwayGoals }}.
+                    </p>
+                    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                      <UInput
+                        v-model.number="finalForm.extraTimeHomeGoals"
+                        type="number"
+                        :min="finalForm.regularHomeGoals"
+                        @blur="normalizeFinalExtraTimeDraft"
+                      />
+                      <span class="text-muted">-</span>
+                      <UInput
+                        v-model.number="finalForm.extraTimeAwayGoals"
+                        type="number"
+                        :min="finalForm.regularAwayGoals"
+                        @blur="normalizeFinalExtraTimeDraft"
+                      />
+                    </div>
                   </div>
                 </template>
 
-                <template v-if="selectedMatch.scoringMode === 'penalties_final'">
-                  <p class="text-sm text-muted">
-                    Penales
-                  </p>
-                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <UInput
-                      v-model.number="finalForm.penaltyHomeGoals"
-                      type="number"
-                      min="0"
-                    />
-                    <span class="text-muted">-</span>
-                    <UInput
-                      v-model.number="finalForm.penaltyAwayGoals"
-                      type="number"
-                      min="0"
-                    />
+                <template v-if="requiresPenaltiesDraft">
+                  <div class="rounded-md border border-sky-300 bg-sky-50/70 p-3 dark:border-sky-700 dark:bg-sky-950/20">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <p class="text-sm font-medium text-sky-900 dark:text-sky-100">
+                        Penales
+                      </p>
+                      <UBadge
+                        label="Local - Visitante"
+                        color="info"
+                        variant="solid"
+                        size="sm"
+                      />
+                    </div>
+                    <p class="mb-2 text-xs text-sky-900/80 dark:text-sky-100/80">
+                      Obligatorio porque los tiempos extra terminaron empatados. El ganador se deduce del marcador.
+                    </p>
+                    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                      <UInput
+                        v-model.number="finalForm.penaltyHomeGoals"
+                        type="number"
+                        min="0"
+                      />
+                      <span class="text-muted">-</span>
+                      <UInput
+                        v-model.number="finalForm.penaltyAwayGoals"
+                        type="number"
+                        min="0"
+                      />
+                    </div>
+                    <p
+                      v-if="isPenaltyDrawDraft"
+                      class="mt-2 text-xs font-medium text-red-700 dark:text-red-300"
+                    >
+                      La tanda de penales no puede terminar empatada.
+                    </p>
                   </div>
-                  <USelect
-                    v-model="finalForm.penaltyWinner"
-                    :items="penaltyWinnerOptions"
-                    class="w-full"
-                  />
                 </template>
 
                 <UButton

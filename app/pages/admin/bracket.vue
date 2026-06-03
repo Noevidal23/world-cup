@@ -30,6 +30,7 @@ const teamOptions = computed(() => (data.value?.teams || []).map(team => ({
 })))
 
 const slots = computed(() => data.value?.slots || [])
+const matchesByNumber = computed(() => new Map((data.value?.matches || []).map(match => [match.matchNumber, match])))
 
 const openSlot = (slot: KnockoutSlotRow) => {
   selectedSlot.value = slot
@@ -140,7 +141,16 @@ const saveOverride = async () => {
                   class="border-b border-default last:border-b-0"
                 >
                   <td class="px-2 py-2 font-semibold">
-                    {{ slot.matchNumber }}
+                    <div class="space-y-1">
+                      <p>{{ slot.matchNumber }}</p>
+                      <UBadge
+                        v-if="matchesByNumber.get(slot.matchNumber) && getFinalScoreLabel(matchesByNumber.get(slot.matchNumber)!)"
+                        :label="`Final · ${getFinalScoreLabel(matchesByNumber.get(slot.matchNumber)!)}`"
+                        color="primary"
+                        variant="solid"
+                        size="sm"
+                      />
+                    </div>
                   </td>
                   <td class="px-2 py-2">
                     {{ slot.stage }}
@@ -188,6 +198,14 @@ const saveOverride = async () => {
               <p class="text-muted">
                 {{ selectedSlot.sourceLabel }}
               </p>
+              <UBadge
+                v-if="matchesByNumber.get(selectedSlot.matchNumber) && getFinalScoreLabel(matchesByNumber.get(selectedSlot.matchNumber)!)"
+                :label="`Final · ${getFinalScoreLabel(matchesByNumber.get(selectedSlot.matchNumber)!)}`"
+                color="primary"
+                variant="solid"
+                size="sm"
+                class="mt-2"
+              />
             </div>
 
             <UFormField label="Equipo">

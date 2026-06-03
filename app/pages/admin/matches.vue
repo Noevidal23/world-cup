@@ -314,6 +314,13 @@ const submitMatch = async () => {
                           >
                             Slots: {{ match.homeSlotLabel || 'local pendiente' }} · {{ match.awaySlotLabel || 'visitante pendiente' }}
                           </p>
+                          <UBadge
+                            v-if="getFinalScoreLabel(match)"
+                            :label="`Final · ${getFinalScoreLabel(match)}`"
+                            color="primary"
+                            variant="solid"
+                            size="sm"
+                          />
                         </div>
                       </td>
                       <td class="px-3 py-3 text-muted">
@@ -410,6 +417,14 @@ const submitMatch = async () => {
                 <p class="text-muted">
                   {{ scoringModeLabel(selectedMatch.scoringMode) }}
                 </p>
+                <UBadge
+                  v-if="getFinalScoreLabel(selectedMatch)"
+                  :label="`Final · ${getFinalScoreLabel(selectedMatch)}`"
+                  color="primary"
+                  variant="solid"
+                  size="sm"
+                  class="mt-2"
+                />
               </div>
 
               <UFormField label="Fecha y hora">

@@ -9,6 +9,5 @@ export const predictionInputSchema = z.object({
   predictedExtraTimeHomeGoals: z.number().int().min(0).max(99).optional(),
   predictedExtraTimeAwayGoals: z.number().int().min(0).max(99).optional(),
   predictedPenaltyHomeGoals: z.number().int().min(0).max(99).optional(),
-  predictedPenaltyAwayGoals: z.number().int().min(0).max(99).optional(),
-  predictedPenaltyWinner: z.enum(['home', 'away']).optional()
+  predictedPenaltyAwayGoals: z.number().int().min(0).max(99).optional()
 })
