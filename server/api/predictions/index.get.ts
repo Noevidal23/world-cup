@@ -1,6 +1,5 @@
 import { MatchModel } from '../../models/Match'
 import { PredictionModel } from '../../models/Prediction'
-import { predictionLockService } from '../../services/PredictionLockService'
 import { requireParticipantUser } from '../../utils/auth'
 import { connectMongo } from '../../utils/db'
 import { serializeMatch } from '../../utils/matches'
@@ -10,7 +9,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireParticipantUser(event)
 
   await connectMongo()
-  await predictionLockService.lockStartedMatches({ source: 'predictions-list' })
 
   const [matches, predictions] = await Promise.all([
     MatchModel.find({ status: { $ne: 'cancelled' } })

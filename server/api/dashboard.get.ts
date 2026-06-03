@@ -5,7 +5,6 @@ import { MatchModel } from '../models/Match'
 import { PredictionModel } from '../models/Prediction'
 import { UserModel } from '../models/User'
 import { UserRankingModel } from '../models/UserRanking'
-import { predictionLockService } from '../services/PredictionLockService'
 import { rankingService } from '../services/RankingService'
 import { requireSessionUser } from '../utils/auth'
 import { connectMongo } from '../utils/db'
@@ -31,7 +30,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event)
 
   await connectMongo()
-  await predictionLockService.lockStartedMatches({ source: 'dashboard' })
   await rankingService.recalculateAll()
 
   const now = new Date()
@@ -140,9 +138,8 @@ export default defineEventHandler(async (event) => {
   const pendingPredictions = await matchQuery()
     .find({
       _id: { $nin: [...predictedMatchIds] },
-      kickoffAt: { $gt: now },
       predictionsLocked: false,
-      status: { $ne: 'cancelled' }
+      status: 'scheduled'
     })
     .sort({ kickoffAt: 1 })
     .limit(5)

@@ -1,6 +1,5 @@
 import { MatchModel } from '../../models/Match'
 import { PredictionModel } from '../../models/Prediction'
-import { predictionLockService } from '../../services/PredictionLockService'
 import { rankingService } from '../../services/RankingService'
 import { requireParticipantUser } from '../../utils/auth'
 import { connectMongo } from '../../utils/db'
@@ -64,7 +63,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await connectMongo()
-  await predictionLockService.lockStartedMatches({ source: 'prediction-create' })
 
   const match = await MatchModel.findById(parsed.data.matchId)
 

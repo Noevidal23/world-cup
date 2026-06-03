@@ -27,15 +27,15 @@ const page = ref(1)
 const pageSize = ref(20)
 const selectedMatch = ref<AdminMatch | null>(null)
 const saving = ref(false)
+const unsetTeamValue = '__unset_team__'
 
 const form = reactive({
   kickoffAt: '',
   stadium: '',
   city: '',
-  homeTeamId: '',
-  awayTeamId: '',
+  homeTeamId: unsetTeamValue,
+  awayTeamId: unsetTeamValue,
   status: 'scheduled' as MatchStatus,
-  predictionsLocked: false,
   scoringMode: 'regular_time' as ScoringMode
 })
 
@@ -81,7 +81,7 @@ const stageOptions: Array<{ label: string, value: MatchStage | 'all' }> = [
 const statusOptions: Array<{ label: string, value: MatchStatus | 'all' }> = [
   { label: 'Todos los estados', value: 'all' },
   { label: 'Programado', value: 'scheduled' },
-  { label: 'En vivo', value: 'live' },
+  { label: 'Partido iniciado', value: 'live' },
   { label: 'Finalizado', value: 'finished' },
   { label: 'Cancelado', value: 'cancelled' }
 ]
@@ -95,7 +95,7 @@ const scoringModeOptions: Array<{ label: string, value: ScoringMode }> = [
 ]
 
 const teamOptions = computed(() => [
-  { label: 'Sin definir', value: '' },
+  { label: 'Sin definir', value: unsetTeamValue },
   ...teams.value.map(team => ({
     label: `${team.name} (${team.fifaCode})`,
     value: team.id
@@ -120,10 +120,9 @@ const openEdit = (match: AdminMatch) => {
   form.kickoffAt = toLocalInputValue(match.kickoffAt)
   form.stadium = match.stadium || ''
   form.city = match.city || ''
-  form.homeTeamId = match.homeTeamId || ''
-  form.awayTeamId = match.awayTeamId || ''
+  form.homeTeamId = match.homeTeamId || unsetTeamValue
+  form.awayTeamId = match.awayTeamId || unsetTeamValue
   form.status = match.status
-  form.predictionsLocked = match.predictionsLocked
   form.scoringMode = match.scoringMode
 }
 
@@ -174,10 +173,9 @@ const submitMatch = async () => {
         kickoffAt: new Date(form.kickoffAt).toISOString(),
         stadium: form.stadium,
         city: form.city,
-        homeTeamId: form.homeTeamId || null,
-        awayTeamId: form.awayTeamId || null,
+        homeTeamId: form.homeTeamId === unsetTeamValue ? null : form.homeTeamId,
+        awayTeamId: form.awayTeamId === unsetTeamValue ? null : form.awayTeamId,
         status: form.status,
-        predictionsLocked: form.predictionsLocked,
         scoringMode: form.scoringMode
       },
       credentials: 'include'
@@ -468,10 +466,9 @@ const submitMatch = async () => {
                 />
               </UFormField>
 
-              <UCheckbox
-                v-model="form.predictionsLocked"
-                label="Bloquear pronósticos manualmente"
-              />
+              <p class="rounded-md bg-muted p-3 text-sm text-muted">
+                Los pronósticos se cierran cuando el estado del partido se marca como iniciado.
+              </p>
 
               <UButton
                 type="submit"

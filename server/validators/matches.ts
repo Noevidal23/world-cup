@@ -21,7 +21,6 @@ export const updateMatchSchema = z.object({
   homeTeamId: objectIdSchema.optional().nullable(),
   awayTeamId: objectIdSchema.optional().nullable(),
   status: matchStatusSchema,
-  predictionsLocked: z.boolean(),
   scoringMode: scoringModeSchema
 })
 

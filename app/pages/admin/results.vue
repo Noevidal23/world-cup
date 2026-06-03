@@ -70,7 +70,7 @@ const pagination = computed(() => data.value?.pagination || {
 const statusOptions = [
   { label: 'Todos los estados', value: 'all' },
   { label: 'Programados', value: 'scheduled' },
-  { label: 'En vivo', value: 'live' },
+  { label: 'Partido iniciado', value: 'live' },
   { label: 'Finalizados', value: 'finished' },
   { label: 'Cancelados', value: 'cancelled' }
 ]

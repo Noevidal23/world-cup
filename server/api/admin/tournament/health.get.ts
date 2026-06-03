@@ -2,14 +2,12 @@ import { GroupStandingModel } from '../../../models/GroupStanding'
 import { KnockoutSlotModel } from '../../../models/KnockoutSlot'
 import { MatchModel } from '../../../models/Match'
 import { PredictionModel } from '../../../models/Prediction'
-import { predictionLockService } from '../../../services/PredictionLockService'
 import { requireAdminUser } from '../../../utils/auth'
 import { connectMongo } from '../../../utils/db'
 
 export default defineEventHandler(async (event) => {
   await requireAdminUser(event)
   await connectMongo()
-  await predictionLockService.lockStartedMatches({ source: 'tournament-health' })
 
   const now = new Date()
   const [
@@ -29,7 +27,7 @@ export default defineEventHandler(async (event) => {
       ]
     }),
     KnockoutSlotModel.countDocuments({ teamId: { $exists: false }, isManualOverride: false }),
-    MatchModel.countDocuments({ kickoffAt: { $lte: now }, predictionsLocked: false, status: { $ne: 'cancelled' } }),
+    MatchModel.countDocuments({ status: 'live', predictionsLocked: false }),
     PredictionModel.aggregate<{ count: number }>([
       {
         $lookup: {

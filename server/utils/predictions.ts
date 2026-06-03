@@ -54,15 +54,17 @@ export const serializePrediction = (prediction: {
   updatedAt: new Date(prediction.updatedAt).toISOString()
 })
 
-export const getPredictionLockReason = (match: { kickoffAt: Date | string, predictionsLocked: boolean }) => {
-  if (match.predictionsLocked) {
-    return new Date(match.kickoffAt).getTime() <= Date.now()
-      ? 'Bloqueado automáticamente por inicio del partido'
-      : 'Bloqueado manualmente'
+export const getPredictionLockReason = (match: { predictionsLocked: boolean, status?: string }) => {
+  if (match.status === 'live') {
+    return 'El partido ya inició'
   }
 
-  if (new Date(match.kickoffAt).getTime() <= Date.now()) {
-    return 'El partido ya inició'
+  if (match.status === 'finished') {
+    return 'El partido ya finalizó'
+  }
+
+  if (match.predictionsLocked) {
+    return 'Pronósticos cerrados'
   }
 
   return undefined

@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     homeTeamId: parsed.data.homeTeamId || undefined,
     awayTeamId: parsed.data.awayTeamId || undefined,
     status: parsed.data.status,
-    predictionsLocked: parsed.data.predictionsLocked,
+    predictionsLocked: ['live', 'finished'].includes(parsed.data.status),
     scoringMode: parsed.data.scoringMode
   }
 
