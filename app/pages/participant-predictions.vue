@@ -60,7 +60,13 @@ const groupedMatches = computed(() => stageOrder
   .map(stage => ({
     stage,
     title: stageLabel(stage),
-    matches: matches.value.filter(item => item.match.stage === stage)
+    matches: matches.value
+      .filter(item => item.match.stage === stage)
+      .map(item => ({
+        ...item,
+        value: item.match.id,
+        label: `Partido ${item.match.matchNumber}`
+      }))
   }))
   .filter(group => group.matches.length > 0)
 )
@@ -141,13 +147,21 @@ const pointsLabel = (prediction: ParticipantPrediction) =>
             />
           </div>
 
-          <UCard
-            v-for="item in group.matches"
-            :key="item.match.id"
+          <UAccordion
+            :items="group.matches"
+            type="multiple"
+            :unmount-on-hide="false"
+            :ui="{
+              root: 'space-y-3',
+              item: 'overflow-hidden rounded-md border border-default bg-default',
+              header: 'px-4',
+              trigger: 'py-4 hover:no-underline',
+              body: 'border-t border-default px-4 py-4'
+            }"
           >
-            <template #header>
-              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="space-y-2">
+            <template #default="{ item, open }">
+              <div class="flex min-w-0 flex-1 flex-col gap-3 text-left lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0 space-y-2">
                   <div class="flex flex-wrap items-center gap-2">
                     <UBadge
                       :label="`Partido ${item.match.matchNumber}`"
@@ -158,6 +172,11 @@ const pointsLabel = (prediction: ParticipantPrediction) =>
                       v-if="item.match.group"
                       :label="`Grupo ${item.match.group}`"
                       variant="subtle"
+                    />
+                    <UBadge
+                      :label="`${item.predictions.length} picks`"
+                      color="neutral"
+                      variant="outline"
                     />
                   </div>
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-2 font-semibold text-highlighted">
@@ -174,63 +193,70 @@ const pointsLabel = (prediction: ParticipantPrediction) =>
                     />
                   </div>
                 </div>
-                <p class="text-sm text-muted">
-                  {{ new Date(item.match.kickoffAt).toLocaleString() }}
-                </p>
-                <UBadge
-                  v-if="getFinalScoreLabel(item.match)"
-                  :label="`Final · ${getFinalScoreLabel(item.match)}`"
-                  color="primary"
-                  variant="solid"
-                  size="sm"
-                />
+                <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <p class="text-sm text-muted">
+                    {{ new Date(item.match.kickoffAt).toLocaleString() }}
+                  </p>
+                  <UBadge
+                    v-if="getFinalScoreLabel(item.match)"
+                    :label="`Final · ${getFinalScoreLabel(item.match)}`"
+                    color="primary"
+                    variant="solid"
+                    size="sm"
+                  />
+                  <span class="text-xs font-medium text-muted">
+                    {{ open ? 'Ocultar picks' : 'Ver picks' }}
+                  </span>
+                </div>
               </div>
             </template>
 
-            <div class="overflow-x-auto">
-              <table class="w-full min-w-[620px] text-left text-sm">
-                <thead class="border-b border-default text-muted">
-                  <tr>
-                    <th class="px-2 py-2">
-                      Participante
-                    </th>
-                    <th class="px-2 py-2">
-                      Pronóstico
-                    </th>
-                    <th class="px-2 py-2">
-                      Puntos
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="row in item.predictions"
-                    :key="row.prediction.id"
-                    class="border-b border-default last:border-b-0"
-                  >
-                    <td class="px-2 py-3">
-                      <p class="font-medium text-highlighted">
-                        {{ row.participant.name }}
-                      </p>
-                      <p class="text-xs text-muted">
-                        @{{ row.participant.username }}
-                      </p>
-                    </td>
-                    <td class="px-2 py-3 font-medium text-highlighted">
-                      {{ predictionScoreLabel(row.prediction) }}
-                    </td>
-                    <td class="px-2 py-3">
-                      <UBadge
-                        :label="pointsLabel(row.prediction)"
-                        :color="row.prediction.status === 'evaluated' ? 'success' : 'neutral'"
-                        variant="subtle"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </UCard>
+            <template #body="{ item }">
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[620px] text-left text-sm">
+                  <thead class="border-b border-default text-muted">
+                    <tr>
+                      <th class="px-2 py-2">
+                        Participante
+                      </th>
+                      <th class="px-2 py-2">
+                        Pronóstico
+                      </th>
+                      <th class="px-2 py-2">
+                        Puntos
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in item.predictions"
+                      :key="row.prediction.id"
+                      class="border-b border-default last:border-b-0"
+                    >
+                      <td class="px-2 py-3">
+                        <p class="font-medium text-highlighted">
+                          {{ row.participant.name }}
+                        </p>
+                        <p class="text-xs text-muted">
+                          @{{ row.participant.username }}
+                        </p>
+                      </td>
+                      <td class="px-2 py-3 font-medium text-highlighted">
+                        {{ predictionScoreLabel(row.prediction) }}
+                      </td>
+                      <td class="px-2 py-3">
+                        <UBadge
+                          :label="pointsLabel(row.prediction)"
+                          :color="row.prediction.status === 'evaluated' ? 'success' : 'neutral'"
+                          variant="subtle"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </UAccordion>
         </section>
       </div>
     </div>
