@@ -17,6 +17,7 @@ const adminNav = [
   { to: '/admin/results', icon: 'i-lucide-clipboard-check', label: 'Resultados' },
   { to: '/admin/groups', icon: 'i-lucide-table-properties', label: 'Tablas' },
   { to: '/admin/bracket', icon: 'i-lucide-git-branch', label: 'Llave admin' },
+  { to: '/admin/user-picks', icon: 'i-lucide-clipboard-list', label: 'Picks usuarios' },
   { to: '/admin/audit', icon: 'i-lucide-shield-check', label: 'Auditoría' },
   { to: '/admin/operations', icon: 'i-lucide-activity', label: 'Operación' }
 ]
